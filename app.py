@@ -14,22 +14,56 @@ app.secret_key = os.environ.get('SECRET_KEY', 'your_secret_key')  # Better secre
 users = {}
 
 # Initialize the YOLO model
-model = YOLO('best.pt')
+try:
+    model = YOLO('best.pt')
+    print("Model loaded successfully")
+except Exception as e:
+    print(f"Error loading model: {str(e)}")
+    model = None
 
 # Global variables for camera
 conf_threshold = 0.5
 
 def process_frame(frame_data):
     try:
+        if model is None:
+            print("Model not loaded")
+            return None
+
         # Decode base64 image
         nparr = np.frombuffer(base64.b64decode(frame_data.split(',')[1]), np.uint8)
         frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         
-        # Run YOLOv8 inference
-        results = model(frame, conf=conf_threshold)
+        if frame is None:
+            print("Failed to decode frame")
+            return None
+
+        # Run YOLOv8 inference with specific parameters
+        results = model(frame, conf=conf_threshold, verbose=False)
         
-        # Visualize the results on the frame
-        annotated_frame = results[0].plot()
+        # Get the first result
+        result = results[0]
+        
+        # Create a copy of the frame for drawing
+        annotated_frame = frame.copy()
+        
+        # Draw boxes and labels
+        for box in result.boxes:
+            # Get box coordinates
+            x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
+            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+            
+            # Get confidence and class
+            conf = float(box.conf[0].cpu().numpy())
+            cls = int(box.cls[0].cpu().numpy())
+            
+            # Draw rectangle
+            cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+            
+            # Add label
+            label = f"{result.names[cls]} {conf:.2f}"
+            cv2.putText(annotated_frame, label, (x1, y1 - 10), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
         
         # Convert the frame to JPEG format
         _, buffer = cv2.imencode('.jpg', annotated_frame)
@@ -71,6 +105,7 @@ def process_frame_route():
         else:
             return jsonify({'error': 'Error processing frame'}), 500
     except Exception as e:
+        print(f"Error in process_frame_route: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/update_confidence', methods=['POST'])
