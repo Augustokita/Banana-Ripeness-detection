@@ -1,0 +1,6 @@
+flask>=2.3.3
+werkzeug>=2.3.7
+ultralytics>=8.0.196
+opencv-python>=4.8.0.76
+numpy>=1.23.5
+torch>=2.0.0 

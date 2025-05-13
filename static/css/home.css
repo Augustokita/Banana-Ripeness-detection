@@ -1,0 +1,131 @@
+/* Homepage Styles */
+body {
+    overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
+    background-color: #ffd700; /* Yellow background */
+    color: #333; /* Dark text */
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+}
+
+.welcome-section {
+    padding: 1rem;
+    background-color: #fff; /* White background */
+    border-radius: 10px;
+    margin: 1rem 0;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.logout-btn {
+    margin-top: 1rem;
+}
+
+.flash-messages {
+    position: fixed;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    width: 90%;
+    max-width: 600px;
+}
+
+.alert {
+    margin-bottom: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    font-size: 0.9rem;
+}
+
+.camera-section {
+    flex: 1;
+    background-color: #fff; /* White background */
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    padding: 0.5rem;
+}
+
+#videoElement {
+    width: 100%;
+    max-width: 800px;
+    height: auto;
+    max-height: calc(100vh - 150px);
+    border-radius: 8px;
+    margin: 0 auto;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    object-fit: contain;
+}
+
+.intro-text {
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #333;
+}
+
+.navbar {
+    padding: 0.5rem 1rem;
+    background-color: #000 !important; /* Black navbar */
+}
+
+.navbar-brand {
+    font-size: 1.1rem;
+    color: #ffd700 !important; /* Yellow text */
+}
+
+.nav-link {
+    font-size: 0.9rem;
+    color: #ffd700 !important; /* Yellow text */
+}
+
+h1 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    color: #333;
+}
+
+h2 {
+    font-size: 1.3rem;
+    margin-bottom: 0.5rem;
+    color: #333;
+    text-align: center;
+}
+
+.btn-primary {
+    background-color: #ffd700 !important; /* Yellow button */
+    border-color: #ffd700 !important;
+    color: #000 !important;
+}
+
+.btn-primary:hover {
+    background-color: #e6c200 !important; /* Darker yellow on hover */
+    border-color: #e6c200 !important;
+}
+
+/* Responsive styles */
+@media (max-width: 576px) {
+    .container {
+        padding: 5px;
+    }
+    .welcome-section {
+        padding: 0.8rem;
+    }
+    .camera-section {
+        padding: 0.3rem;
+    }
+    #videoElement {
+        max-height: calc(100vh - 120px);
+    }
+    h2 {
+        font-size: 1.1rem;
+        margin-bottom: 0.3rem;
+    }
+} 
