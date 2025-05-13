@@ -5,6 +5,7 @@ from ultralytics import YOLO
 import numpy as np
 import os
 import torch
+import base64
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'your_secret_key')  # Better secret key handling
@@ -16,38 +17,26 @@ users = {}
 model = YOLO('best.pt')
 
 # Global variables for camera
-camera = None
 conf_threshold = 0.5
 
-def get_camera():
-    global camera
-    if camera is None:
-        camera = cv2.VideoCapture(0)
-        # Set camera properties for better quality
-        camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-        camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-        camera.set(cv2.CAP_PROP_FPS, 30)
-    return camera
-
-def generate_frames():
-    camera = get_camera()
-    while True:
-        success, frame = camera.read()
-        if not success:
-            break
-        else:
-            # Run YOLOv8 inference
-            results = model(frame, conf=conf_threshold)
-            
-            # Visualize the results on the frame
-            annotated_frame = results[0].plot()
-            
-            # Convert the frame to JPEG format
-            ret, buffer = cv2.imencode('.jpg', annotated_frame)
-            frame = buffer.tobytes()
-            
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+def process_frame(frame_data):
+    try:
+        # Decode base64 image
+        nparr = np.frombuffer(base64.b64decode(frame_data.split(',')[1]), np.uint8)
+        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        # Run YOLOv8 inference
+        results = model(frame, conf=conf_threshold)
+        
+        # Visualize the results on the frame
+        annotated_frame = results[0].plot()
+        
+        # Convert the frame to JPEG format
+        _, buffer = cv2.imencode('.jpg', annotated_frame)
+        return base64.b64encode(buffer).decode('utf-8')
+    except Exception as e:
+        print(f"Error processing frame: {str(e)}")
+        return None
 
 # Login required decorator
 def login_required(f):
@@ -68,11 +57,21 @@ def index():
 def home():
     return render_template('home.html', username=session['username'])
 
-@app.route('/video_feed')
+@app.route('/process_frame', methods=['POST'])
 @login_required
-def video_feed():
-    return Response(generate_frames(),
-                    mimetype='multipart/x-mixed-replace; boundary=frame')
+def process_frame_route():
+    try:
+        frame_data = request.json.get('frame')
+        if not frame_data:
+            return jsonify({'error': 'No frame data received'}), 400
+        
+        processed_frame = process_frame(frame_data)
+        if processed_frame:
+            return jsonify({'frame': processed_frame})
+        else:
+            return jsonify({'error': 'Error processing frame'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/update_confidence', methods=['POST'])
 @login_required
@@ -141,10 +140,6 @@ def signup():
 
 @app.route('/logout')
 def logout():
-    global camera
-    if camera is not None:
-        camera.release()
-        camera = None
     session.pop('username', None)
     flash('You have been logged out successfully', 'success')
     return redirect(url_for('index'))
