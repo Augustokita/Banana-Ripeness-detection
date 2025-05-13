@@ -37,7 +37,8 @@
         <div class="camera-section">
             <h2>Live Detection</h2>
             <div class="text-center">
-                <img id="videoElement" src="{{ url_for('video_feed') }}" alt="Camera Feed">
+                <video id="videoElement" autoplay playsinline></video>
+                <canvas id="canvasElement" style="display: none;"></canvas>
             </div>
         </div>
     </div>
@@ -53,6 +54,80 @@
                     bsAlert.close();
                 });
             }, 5000);
+        });
+
+        // Camera handling
+        const video = document.getElementById('videoElement');
+        const canvas = document.getElementById('canvasElement');
+        const context = canvas.getContext('2d');
+
+        // Set canvas size
+        canvas.width = 640;
+        canvas.height = 480;
+
+        // Request camera access
+        async function setupCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: 640,
+                        height: 480,
+                        facingMode: 'user'
+                    }
+                });
+                video.srcObject = stream;
+                return new Promise((resolve) => {
+                    video.onloadedmetadata = () => {
+                        resolve(video);
+                    };
+                });
+            } catch (error) {
+                console.error('Error accessing camera:', error);
+                alert('Error accessing camera. Please make sure you have granted camera permissions.');
+            }
+        }
+
+        // Process frames
+        async function processFrame() {
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                // Draw video frame to canvas
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // Get frame data
+                const frameData = canvas.toDataURL('image/jpeg');
+                
+                try {
+                    // Send frame to server
+                    const response = await fetch('/process_frame', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ frame: frameData })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.frame) {
+                        // Create new image from processed frame
+                        const img = new Image();
+                        img.src = 'data:image/jpeg;base64,' + data.frame;
+                        img.onload = () => {
+                            context.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        };
+                    }
+                } catch (error) {
+                    console.error('Error processing frame:', error);
+                }
+            }
+            
+            // Request next frame
+            requestAnimationFrame(processFrame);
+        }
+
+        // Initialize camera and start processing
+        setupCamera().then(() => {
+            processFrame();
         });
 
         // Prevent zooming on double tap for mobile devices
